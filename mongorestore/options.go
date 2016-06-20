@@ -49,8 +49,8 @@ func (*OutputOptions) Name() string {
 
 // NSOptions defines the set of options for configuring involved namespaces
 type NSOptions struct {
-	DB                         string   `short:"d" long:"db" value-name:"<database-name>" description:"DEPRECATED; database to use"`
-	Collection                 string   `short:"c" long:"collection" value-name:"<collection-name>" description:"DEPRECATED; collection to use"`
+	DB                         string   `short:"d" long:"db" value-name:"<database-name>" description:"database to use when restoring from a BSON file"`
+	Collection                 string   `short:"c" long:"collection" value-name:"<collection-name>" description:"collection to use when restoring from a BSON file"`
 	ExcludedCollections        []string `long:"excludeCollection" value-name:"<collection-name>" description:"DEPRECATED; collection to skip over during restore (may be specified multiple times to exclude additional collections)"`
 	ExcludedCollectionPrefixes []string `long:"excludeCollectionsWithPrefix" value-name:"<collection-prefix>" description:"DEPRECATED; collections to skip over during restore that have the given prefix (may be specified multiple times to exclude additional prefixes)"`
 	NSExclude                  []string `long:"nsExclude" value-name:"<namespace-pattern>" description:"exclude matching namespaces"`

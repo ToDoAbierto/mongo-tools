@@ -160,13 +160,30 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 
 	// deprecations with --nsInclude --nsExclude
 	if restore.NSOptions.DB != "" || restore.NSOptions.Collection != "" {
-		log.Logf(log.Always, "the --db and --collection options are deprecated and will not exist "+
-			"in the future; use --nsInclude instead")
+		// these are only okay if restoring from a bson file
+		_, fileType := restore.getInfoFromFilename(restore.TargetDirectory)
+		if fileType != BSONFileType {
+			log.Logf(log.Always, "the --db and --collection args should only be used when "+
+				"restoring from a BSON file. Other uses are deprecated and will not exist "+
+				"in the future; use --nsInclude instead")
+		}
 	}
 	if len(restore.NSOptions.ExcludedCollections) > 0 ||
 		len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 {
 		log.Logf(log.Always, "the --excludeCollections and --excludeCollectionPrefixes options "+
 			"are deprecated and will not exist in the future; use --nsExclude instead")
+	}
+	if restore.InputOptions.OplogReplay {
+		if len(restore.NSOptions.NSInclude) > 0 || restore.NSOptions.DB != "" {
+			return fmt.Errorf("cannot use --oplogReplay with includes specified")
+		}
+		if len(restore.NSOptions.NSExclude) > 0 || len(restore.NSOptions.ExcludedCollections) > 0 ||
+			len(restore.NSOptions.ExcludedCollectionPrefixes) > 0 {
+			return fmt.Errorf("cannot use --oplogReplay with excludes specified")
+		}
+		if len(restore.NSOptions.NSFrom) > 0 {
+			return fmt.Errorf("cannot use --oplogReplay with namespace renames specified")
+		}
 	}
 
 	includes := restore.NSOptions.NSInclude
@@ -176,11 +193,7 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	} else if restore.NSOptions.DB != "" {
 		includes = append(includes, ns.Escape(restore.NSOptions.DB)+".*")
 	}
-	if len(includes) > 0 {
-		if restore.InputOptions.OplogReplay {
-			return fmt.Errorf("cannot use --oplogReplay with includes specified")
-		}
-	} else {
+	if len(includes) == 0 {
 		includes = []string{"*"}
 	}
 	restore.includer, err = ns.NewMatcher(includes)
@@ -201,23 +214,13 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	for _, colPrefix := range restore.NSOptions.ExcludedCollectionPrefixes {
 		excludes = append(excludes, "*."+ns.Escape(colPrefix)+"*")
 	}
-	if len(excludes) > 0 {
-		if restore.InputOptions.OplogReplay {
-			return fmt.Errorf("cannot use --oplogReplay with excludes specified")
-		}
-	}
 	restore.excluder, err = ns.NewMatcher(excludes)
 	if err != nil {
 		return fmt.Errorf("invalid excludes: %v", err)
 	}
 
 	if len(restore.NSOptions.NSFrom) != len(restore.NSOptions.NSTo) {
-		return fmt.Errorf("--nsFrom and --nsTo arguments don't match up")
-	}
-	if len(restore.NSOptions.NSFrom) > 0 {
-		if restore.InputOptions.OplogReplay {
-			return fmt.Errorf("cannot use --oplogReplay with namespace renames specified")
-		}
+		return fmt.Errorf("--nsFrom and --nsTo arguments must be specified an equal number of times")
 	}
 	restore.renamer, err = ns.NewRenamer(restore.NSOptions.NSFrom, restore.NSOptions.NSTo)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -353,10 +354,10 @@ type MetadataPreludeFile struct {
 
 // Open is part of the intents.file interface, it finds the metadata in the prelude and creates a bytes.Buffer from it.
 func (mpf *MetadataPreludeFile) Open() error {
-	db, c := splitNamespace(mpf.Origin)
+	db, c := common.SplitNamespace(mpf.Origin)
 	dbMetadatas, ok := mpf.Prelude.NamespaceMetadatasByDB[db]
 	if !ok {
-		return fmt.Errorf("no prelude found for '%s'", db)
+		return fmt.Errorf("no metadata found for '%s'", db)
 	}
 	for _, metadata := range dbMetadatas {
 		if metadata.Collection == c {
@@ -364,7 +365,7 @@ func (mpf *MetadataPreludeFile) Open() error {
 			return nil
 		}
 	}
-	return fmt.Errorf("no matching prelude metadata for '%s'", mpf.Origin)
+	return fmt.Errorf("no matching metadata found for '%s'", mpf.Origin)
 }
 
 // Close is part of the intents.file interface.
