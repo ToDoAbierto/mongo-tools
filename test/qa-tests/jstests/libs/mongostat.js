@@ -8,6 +8,23 @@ var rowRegex = /^sh\d+\|\s/;
 
 var portRegex = /^sh\d+\| \S+:(\d+)(\s+\S+){16}/; // I counted like 22 fields, so 16 is just a number that should indicate that we're actually looking at a stat line
 
+function statRows() {
+  return rawMongoProgramOutput()
+    .split("\n")
+    .filter(function(r) {
+      return r.match(rowRegex);
+    })
+    .map(function(r) {
+      return r.replace(/^sh\d+\| /, "");
+    });
+}
+
+function statFields(row) {
+  return row.split(/\s/).filter(function(s) {
+    return s !== "";
+  });
+}
+
 function statOutputPortCheck(ports) {
   var portMap = {};
   ports.forEach(function(p) {
